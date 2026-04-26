@@ -3,6 +3,8 @@ package com.udacity.vehicles.api;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 import com.udacity.vehicles.domain.car.Car;
 import com.udacity.vehicles.service.CarService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
@@ -27,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 @RequestMapping("/cars")
+@Tag(name = "Cars", description = "Vehicle management API")
 class CarController {
 
     private final CarService carService;
@@ -42,6 +45,7 @@ class CarController {
      * @return list of vehicles
      */
     @GetMapping
+    @Operation(summary = "Get all cars")
     CollectionModel<EntityModel<Car>> list() {
         List<EntityModel<Car>> resources = carService.list().stream().map(assembler::toModel)
                 .collect(Collectors.toList());
@@ -55,13 +59,9 @@ class CarController {
      * @return all information for the requested vehicle
      */
     @GetMapping("/{id}")
+    @Operation(summary = "Get a car by id")
     EntityModel<Car> get(@PathVariable Long id) {
-        /**
-         * TODO: Use the `findById` method from the Car Service to get car information.
-         * TODO: Use the `assembler` on that car and return the resulting output.
-         *   Update the first line as part of the above implementing.
-         */
-        return assembler.toModel(new Car());
+        return assembler.toModel(carService.findById(id));
     }
 
     /**
@@ -71,18 +71,10 @@ class CarController {
      * @throws URISyntaxException if the request contains invalid fields or syntax
      */
     @PostMapping
+    @Operation(summary = "Create a new car")
     ResponseEntity<?> post(@Valid @RequestBody Car car) throws URISyntaxException {
-        /**
-         * TODO: Use the `save` method from the Car Service to save the input car.
-         * TODO: Use the `assembler` on that saved car and return as part of the response.
-         *   Update the first line as part of the above implementing.
-         */
-        EntityModel<Car> resource = assembler.toModel(new Car());
-
-        //Note: There will be error on this line till above TODOs are implemented
-        return ResponseEntity.created(new URI(resource.getId().expand().getHref())).body(resource);     
-
-        
+        EntityModel<Car> resource = assembler.toModel(carService.save(car));
+        return ResponseEntity.created(new URI(resource.getRequiredLink("self").getHref())).body(resource);
     }
 
     /**
@@ -92,14 +84,10 @@ class CarController {
      * @return response that the vehicle was updated in the system
      */
     @PutMapping("/{id}")
+    @Operation(summary = "Update a car")
     ResponseEntity<?> put(@PathVariable Long id, @Valid @RequestBody Car car) {
-        /**
-         * TODO: Set the id of the input car object to the `id` input.
-         * TODO: Save the car using the `save` method from the Car service
-         * TODO: Use the `assembler` on that updated car and return as part of the response.
-         *   Update the first line as part of the above implementing.
-         */
-        EntityModel<Car> resource = assembler.toModel(new Car());
+        car.setId(id);
+        EntityModel<Car> resource = assembler.toModel(carService.save(car));
         return ResponseEntity.ok(resource);
     }
 
@@ -109,10 +97,9 @@ class CarController {
      * @return response that the related vehicle is no longer in the system
      */
     @DeleteMapping("/{id}")
+    @Operation(summary = "Delete a car")
     ResponseEntity<?> delete(@PathVariable Long id) {
-        /**
-         * TODO: Use the Car Service to delete the requested vehicle.
-         */
+        carService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }
